@@ -154,6 +154,20 @@ def test_copy_in_records_binary(conn, format):
     assert data == [(None, "hello"), (None, "world")]
 
 
+@pytest.mark.parametrize("format", Format)
+def test_copy_in_records_binary_bytea(conn, format):
+    cur = conn.cursor()
+    ensure_table(cur, "col1 int4 primary key, data bytea")
+
+    sample_records = [(41, b"aaaa"), (42, b"world")]
+    with cur.copy(f"copy copy_in (col1, data) from stdin") as copy:
+        for row in sample_records:
+            copy.write_row(row)
+
+    data = cur.execute("select col1, data from copy_in order by col1").fetchall()
+    assert data == sample_records
+
+
 @pytest.mark.crdb_skip("copy canceled")
 def test_copy_in_buffers_with_py_error(conn):
     cur = conn.cursor()
